@@ -32,30 +32,11 @@ func ResolveTrick(room *models.GameRoom) (string, error) {
             continue
         }
 
-        isNewCardTrump := card.Suit == trumpSuit
-        isCurrentWinnerTrump := winningCard.Suit == trumpSuit
-
-        if isNewCardTrump {
-            if !isCurrentWinnerTrump {
-                // A nova carta é trunfo e a atual não. A nova ganha.
-                winningPlayerID = playerID
-                winningCard = card
-            } else {
-                // Ambas são trunfos. A de maior pontuação ganha.
-                if card.Points > winningCard.Points {
-                    winningPlayerID = playerID
-                    winningCard = card
-                }
-            }
-        } else if card.Suit == leadSuit {
-            // A nova carta não é trunfo, mas é do naipe de saída.
-            if !isCurrentWinnerTrump && card.Points > winningCard.Points {
-                // A atual também não é trunfo e está no naipe de saída. A maior ganha.
-                winningPlayerID = playerID
-                winningCard = card
-            }
+        // Usar a nova função de comparação robusta em vez de comparar pontos!
+        if isCardStronger(card, winningCard, trumpSuit, leadSuit) {
+            winningPlayerID = playerID
+            winningCard = card
         }
-        // Se não for trunfo nem do naipe de saída, é descarte e nunca ganha.
     }
 
     // Encontrar a equipa do vencedor para adicionar os pontos
@@ -94,4 +75,57 @@ func findPlayerIndexByID(room *models.GameRoom, playerID string) int {
         }
     }
     return -1 // Não deve acontecer com IDs válidos
+}
+
+// rankHierarchy define a força absoluta de cada carta na Sueca
+var rankHierarchy = map[models.Rank]int{
+    models.Ace:   10,
+    models.Seven: 9,
+    models.King:  8,
+    models.Queen: 7,
+    models.Jack:  6,
+    models.Six:   5,
+    models.Five:  4,
+    models.Four:  3,
+    models.Three: 2,
+    models.Two:   1,
+}
+
+// isCardStronger verifica se a carta A é mais forte que a carta B, dado o contexto do trunfo e naipe de saída
+func isCardStronger(cardA, cardB models.Card, trumpSuit, leadSuit models.Suit) bool {
+    aIsTrump := cardA.Suit == trumpSuit
+    bIsTrump := cardB.Suit == trumpSuit
+
+    // Se A é trunfo e B não é, A ganha
+    if aIsTrump && !bIsTrump {
+        return true
+    }
+    // Se B é trunfo e A não é, B ganha
+    if !aIsTrump && bIsTrump {
+        return false
+    }
+    // Se ambos são trunfos, ganha a hierarquia maior
+    if aIsTrump && bIsTrump {
+        return rankHierarchy[cardA.Rank] > rankHierarchy[cardB.Rank]
+    }
+
+    // Se nenhum é trunfo, verificamos o naipe de saída
+    aIsLead := cardA.Suit == leadSuit
+    bIsLead := cardB.Suit == leadSuit
+
+    // Se A é do naipe e B não, A ganha
+    if aIsLead && !bIsLead {
+        return true
+    }
+    if !aIsLead && bIsLead {
+        return false
+    }
+    // Se ambos são do naipe de saída, ganha a hierarquia maior
+    if aIsLead && bIsLead {
+        return rankHierarchy[cardA.Rank] > rankHierarchy[cardB.Rank]
+    }
+
+    // Se chegámos aqui, A é um descarte e B também. O primeiro a jogar (B) ganha por padrão.
+    // Logo, A não é mais forte.
+    return false
 }
