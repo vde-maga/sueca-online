@@ -9,6 +9,7 @@ var (
     ErrGameNotPlaying = errors.New("game is not in PLAYING state")
     ErrNotYourTurn    = errors.New("it is not your turn")
     ErrCardNotInHand  = errors.New("card is not in your hand")
+    ErrMustFollowSuit = errors.New("must follow the lead suit if able")
 )
 
 // PlayCard tenta executar a ação de jogar uma carta no estado atual da sala
@@ -37,11 +38,28 @@ func PlayCard(room *models.GameRoom, playerID string, card models.Card) error {
         return ErrCardNotInHand
     }
 
-    // Se chegámos aqui, a jogada é válida. Vamos mutar o estado.
-    
-    // Remover a carta da mão do jogador (Slice trick em Go)
+    // 4. Rule Check (Acompanhar Naipe)
+    if room.CurrentTrick.LeadSuit != "" {
+        // Verificar se o jogador tem cartas do naipe de saída na mão
+        hasLeadSuit := false
+        for _, c := range currentPlayer.Hand {
+            if c.Suit == room.CurrentTrick.LeadSuit {
+                hasLeadSuit = true
+                break
+            }
+        }
+
+        // Se ele tem o naipe, a carta que jogou TEM de ser desse naipe
+        if hasLeadSuit && card.Suit != room.CurrentTrick.LeadSuit {
+            return ErrMustFollowSuit
+        }
+    }
+
+    // --- SE CHEGÁMOS AQUI, A JOGADA É VÁLIDA --- (Mutar o Estado)
+
+    // Remover a carta da mão do jogador
     currentPlayer.Hand = append(currentPlayer.Hand[:cardIndex], currentPlayer.Hand[cardIndex+1:]...)
-    room.Players[room.CurrentTurnIndex] = currentPlayer // Atualizar o array no room
+    room.Players[room.CurrentTurnIndex] = currentPlayer
 
     // Inicializar o mapa se for a primeira carta da vaza
     if room.CurrentTrick.CardsPlayed == nil {

@@ -75,3 +75,47 @@ func TestValidPlay(t *testing.T) {
         t.Fatalf("LeadSuit esperado Ouros, obtido %s", room.CurrentTrick.LeadSuit)
     }
 }
+
+// TestMustFollowSuit verifica se o jogador é obrigado a acompanhar o naipe de saída
+func TestMustFollowSuit(t *testing.T) {
+    room := setupTestRoom()
+    
+    // Simular que o naipe de saída já foi definido por outro jogador (ex: Ouros)
+    room.CurrentTrick.LeadSuit = models.Ouros
+    
+    // O jogador 1 tem Ouros e Espadas na mão
+    room.Players[0].Hand = []models.Card{
+        {Suit: models.Ouros, Rank: models.Seven, Points: 10},
+        {Suit: models.Espadas, Rank: models.Ace, Points: 11},
+    }
+
+    // O jogador tenta jogar Espadas, mas tem Ouros na mão! (Deve falhar)
+    cardToPlay := models.Card{Suit: models.Espadas, Rank: models.Ace, Points: 11}
+    err := PlayCard(room, "p1", cardToPlay)
+
+    if err != ErrMustFollowSuit {
+        t.Fatalf("Esperava ErrMustFollowSuit, obtive: %v", err)
+    }
+}
+
+// TestCanDiscardIfNoSuit verifica se o jogador pode jogar outro naipe se não tiver o naipe de saída
+func TestCanDiscardIfNoSuit(t *testing.T) {
+    room := setupTestRoom()
+    
+    // Simular que o naipe de saída é Copas
+    room.CurrentTrick.LeadSuit = models.Copas
+    
+    // O jogador 1 NÃO tem Copas, tem Ouros e Espadas
+    room.Players[0].Hand = []models.Card{
+        {Suit: models.Ouros, Rank: models.Seven, Points: 10},
+        {Suit: models.Espadas, Rank: models.Ace, Points: 11},
+    }
+
+    // O jogador tenta jogar Espadas (descarte). Como não tem Copas, é válido!
+    cardToPlay := models.Card{Suit: models.Espadas, Rank: models.Ace, Points: 11}
+    err := PlayCard(room, "p1", cardToPlay)
+
+    if err != nil {
+        t.Fatalf("Jogada de descarte deveria ser válida, mas obteve-se erro: %v", err)
+    }
+}
