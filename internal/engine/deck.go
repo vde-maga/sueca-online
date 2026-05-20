@@ -14,20 +14,20 @@ func NewDeck() []models.Card {
         models.Jack, models.Queen, models.King, models.Ace,
     }
 
-    // Pontuação conforme o teu documento:
-    // 2=11, 3=0, 4=0, 5=0, 6=0, 7=0, Valete=2, Rainha=3, Rei=4, Ás=10
+    // Pontuação clássica da Sueca de Portugal:
+    // Ás=11, 7=10, Rei=4, Dama=3, Valete=2, Restantes=0
     // Total por naipe = 30. Total no baralho = 120.
     pointsMap := map[models.Rank]int{
-        models.Two:   11,
+        models.Ace:   11,
+        models.Seven: 10,
+        models.King:  4,
+        models.Queen: 3,
+        models.Jack:  2,
+        models.Two:   0,
         models.Three: 0,
         models.Four:  0,
         models.Five:  0,
         models.Six:   0,
-        models.Seven: 0,
-        models.Jack:  2,
-        models.Queen: 3,
-        models.King:  4,
-        models.Ace:   10,
     }
 
     deck := make([]models.Card, 0, 40)
