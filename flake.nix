@@ -20,6 +20,8 @@
             golangci-lint # Linter avançado para Go
             gotools     # Ferramentas extra como `goimports`
             tree
+            websocat
+            curl
           ];
 
           # Variáveis de ambiente úteis
