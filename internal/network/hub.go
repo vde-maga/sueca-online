@@ -174,12 +174,46 @@ func (h *Hub) broadcastRoomUpdate(room *models.GameRoom) {
 }
 
 // broadcastGameStart envia o estado inicial do jogo
+// broadcastGameStart envia o estado inicial do jogo MASCARADO (Data Masking)
 func (h *Hub) broadcastGameStart(room *models.GameRoom) {
-    msg := OutgoingMessage{
-        Type:    TypeGameStart,
-        Payload: map[string]string{"message": "O jogo começou! Cartas distribuídas."},
+    // NOTA: Esta função é chamada de dentro do JoinRoom, que já tem o Lock ativo.
+    // Não podemos usar h.mu.Lock() aqui senão causamos Deadlock!
+
+    // Vamos iterar sobre os clientes conectados a esta sala
+    for conn, client := range h.Clients {
+        if client.RoomCode == room.ID {
+            // Procurar a mão deste jogador específico no estado do Motor
+            var playerHand []models.Card
+            for _, p := range room.Players {
+                if p.ID == client.PlayerID {
+                    playerHand = p.Hand
+                    break
+                }
+            }
+
+            // Construir o payload seguro (Só a mão deste jogador, trunfo e vez)
+            payload := GameStartPayload{
+                Hand:        playerHand,
+                TrumpCard:   room.TrumpCard,
+                CurrentTurn: room.Players[room.CurrentTurnIndex].ID,
+                PlayerID:    client.PlayerID,
+            }
+
+            msg := OutgoingMessage{
+                Type:    TypeGameStart,
+                Payload: payload,
+            }
+
+            data, err := json.Marshal(msg)
+            if err != nil {
+                log.Printf("Erro ao criar mensagem de GameStart: %v", err)
+                continue
+            }
+
+            // Enviar APENAS para este cliente
+            conn.WriteMessage(websocket.TextMessage, data)
+        }
     }
-    h.broadcastToRoom(room.ID, msg)
 }
 
 // broadcastToRoom envia uma mensagem para todos os WebSockets de uma sala

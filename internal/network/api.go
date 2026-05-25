@@ -1,6 +1,7 @@
 package network
 
 import "encoding/json"
+import "sueca-online/internal/models"
 
 // ActionType define os tipos de ações que o cliente pode enviar
 type ActionType string
@@ -52,4 +53,12 @@ type OutgoingMessage struct {
 // ErrorPayload é a estrutura para enviar erros para o cliente
 type ErrorPayload struct {
     Message string `json:"message"`
+}
+
+// GameStartPayload é a estrutura enviada INDIVIDUALMENTE a cada jogador no início
+type GameStartPayload struct {
+    Hand        []models.Card `json:"hand"`        // A mão secreta DESTE jogador
+    TrumpCard   models.Card   `json:"trumpCard"`   // O trunfo da mesa
+    CurrentTurn string        `json:"currentTurn"` // O ID de quem joga primeiro
+    PlayerID    string        `json:"playerId"`    // O ID deste jogador (para o frontend se identificar)
 }
